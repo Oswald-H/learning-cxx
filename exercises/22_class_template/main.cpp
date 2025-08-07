@@ -10,6 +10,12 @@ struct Tensor4D {
     Tensor4D(unsigned int const shape_[4], T const *data_) {
         unsigned int size = 1;
         // TODO: 填入正确的 shape 并计算 size
+        for (int i = 0; i < 4; ++i)
+        {
+            shape[i] = shape_[i];
+            size *= shape[i];
+        }
+        
         data = new T[size];
         std::memcpy(data, data_, size * sizeof(T));
     }
@@ -28,6 +34,34 @@ struct Tensor4D {
     // 则 `this` 与 `others` 相加时，3 个形状为 `[1, 2, 1, 4]` 的子张量各自与 `others` 对应项相加。
     Tensor4D &operator+=(Tensor4D const &others) {
         // TODO: 实现单向广播的加法
+        unsigned int strides_this[4];
+        unsigned int strides_others[4];
+        strides_this[3] = 1;
+        strides_others[3] = 1;
+        for (int i = 2; i >= 0; --i) {
+            strides_this[i] = strides_this[i + 1] * shape[i + 1];
+            strides_others[i] = strides_others[i + 1] * others.shape[i + 1];
+        }
+
+        for (unsigned int i = 0; i < shape[0]; ++i) {
+            for (unsigned int j = 0; j < shape[1]; ++j) {
+                for (unsigned int k = 0; k < shape[2]; ++k) {
+                    for (unsigned int l = 0; l < shape[3]; ++l) {
+                        unsigned int idx_this = i * strides_this[0] + j * strides_this[1] + k * strides_this[2] + l * strides_this[3];
+                        
+                        unsigned int i_other = (others.shape[0] == 1) ? 0 : i;
+                        unsigned int j_other = (others.shape[1] == 1) ? 0 : j;
+                        unsigned int k_other = (others.shape[2] == 1) ? 0 : k;
+                        unsigned int l_other = (others.shape[3] == 1) ? 0 : l;
+                        
+                        unsigned int idx_others = i_other * strides_others[0] + j_other * strides_others[1] + k_other * strides_others[2] + l_other * strides_others[3];
+                        
+                        data[idx_this] += others.data[idx_others];
+                    }
+                }
+            }
+        }
+
         return *this;
     }
 };
